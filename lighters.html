@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base href="https://example.com/">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redwood Lighter Collection: The 75 Lighters Collection</title>
+    <style>
+        body, html {
+            display: none; /* Hide the entire body by default */
+            font-family: 'Georgia', serif;
+            background-color: #8b000000;
+            color: #8B0000;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .main-container {
+            display: flex; /* Keep this as flex for layout */
+            flex-direction: column;
+            max-width: 1000px;
+            height: 90vh;
+            margin: 5vh auto;
+            background-color: #FFFAF0;
+            box-shadow: 0 0 15px rgba(0,0,0,0.3);
+            border-radius: 20px;
+            overflow: hidden;
+            display: none; /* Hide the main container by default */
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #8B0000;
+            padding: 20px;
+            background-color: #FFFAF0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        h1 {
+            font-size: 48px;
+            margin: 0;
+            color: #8B0000;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: bold;
+        }
+        .counter {
+            font-size: 24px;
+            margin-top: 10px;
+            color: #A52A2A;
+        }
+        .scrollable-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .lighter-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .lighter-item {
+            text-align: center;
+            font-size: 14px;
+            position: relative;
+        }
+        .lighter-icon {
+            width: 60px;
+            height: 90px;
+            margin: 0 auto;
+            background-color: #8B0000;
+            position: relative;
+            cursor: pointer;
+            opacity: 0.3;
+            transition: opacity 0.3s, transform 0.2s;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .lighter-icon.collected {
+            opacity: 1;
+        }
+        .lighter-icon:hover {
+            transform: scale(1.05);
+        }
+        .lighter-icon::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 10px;
+            background-color: #FFD700;
+            border-radius: 3px 3px 0 0;
+        }
+        .lighter-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+        .lighter-icon.collected img {
+            opacity: 1;
+        }
+        .transfer-btn {
+            margin-top: 5px;
+            background-color: #8B0000;
+            color: #FFF5E1;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-family: 'Georgia', serif;
+            border-radius: 3px;
+            transition: background-color 0.3s;
+        }
+        .transfer-btn:hover {
+            background-color: #A52A2A;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #FFF5E1;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #8B0000;
+            width: 300px;
+            text-align: center;
+            border-radius: 10px;
+        }
+        .close {
+            color: #8B0000;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #claimPrize {
+            display: block;
+            margin: 20px auto;
+            background-color: #FF0000;
+            color: #FFF5E1;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            font-family: 'Georgia', serif;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        #claimPrize:hover:not(:disabled) {
+            background-color: #A52A2A;
+        }
+        #claimPrize:disabled {
+            background-color: #FF0000;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <header class="header">
+            <h1>Redwood Lighter Collection</h1>
+            <div class="counter">Collected: <span id="collectedCount">0</span> / 75</div>
+        </header>
+        <div class="scrollable-content">
+            <main class="lighter-grid" id="lighterGrid">
+                <!-- Lighter items will be dynamically inserted here -->
+            </main>
+            <button id="claimPrize" disabled>Collect all 75 lighters to claim a prize</button>
+        </div>
+    </div>
+
+    <div id="transferModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Transfer Lighter</h2>
+            <p>Transferring lighter #<span id="lighterNumber"></span></p>
+            <input type="text" id="playerIdInput" placeholder="Enter Player ID">
+            <p>Transfer to: <span id="playerName"></span></p>
+            <button id="confirmTransfer">Confirm</button>
+            <button id="cancelTransfer">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        console.log("ESC key pressed"); // Debugging log
+        transferModal.style.display = 'none';
+        playerIdInput.value = ''; // Clear input when closing
+        playerNameSpan.textContent = ''; // Clear displayed player name
+        
+        // Send a message to Lua to close the NUI
+        fetch(`https://jd-lighters/close`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ action: 'close' })
+        });
+    }
+});
+
+
+
+window.addEventListener('message', function(event) {
+    if (event.data.action === "openLighters") {
+        document.querySelector('body').style.display = "flex"; // Show the body
+        document.querySelector('.main-container').style.display = "flex"; // Show the main container
+        createLighterItems(); // Call to create lighter items
+    } else if (event.data.action === "closeLighters") {
+        document.querySelector('body').style.display = "none"; // Hide the body
+        document.querySelector('.main-container').style.display = "none"; // Hide the main container
+    } else if (event.data.action === "loadLighters") {
+        const lighters = event.data.lighters;
+        collectedLighters = lighters; // Update with the collected lighters received
+        updateCollectedCount(); // Call to update the counter
+        // Update UI to reflect collected lighters
+        lighters.forEach(lighterId => {
+            document.querySelector(`.lighter-icon[data-number="${lighterId}"]`).classList.add('collected');
+        });
+    }
+});
+
+
+        let collectedLighters = 0;
+        const lighterGrid = document.getElementById('lighterGrid');
+        const collectedCountSpan = document.getElementById('collectedCount');
+        const claimPrizeBtn = document.getElementById('claimPrize');
+        const transferModal = document.getElementById('transferModal');
+        const closeModalBtn = document.querySelector('.close');
+        const playerIdInput = document.getElementById('playerIdInput');
+        const playerNameSpan = document.getElementById('playerName');
+        const confirmTransferBtn = document.getElementById('confirmTransfer');
+        const cancelTransferBtn = document.getElementById('cancelTransfer');
+        let currentLighterNumber;
+
+        function createLighterItems() {
+            lighterGrid.innerHTML = ''; // Clear any existing items
+            for (let i = 1; i <= 75; i++) {
+                const lighterItem = document.createElement('div');
+                lighterItem.classList.add('lighter-item');
+                lighterItem.innerHTML = `
+                    <div class="lighter-icon" data-number="${i}">
+                        <img src="lighter_image_path/${i}.png" alt="Lighter ${i}">
+                    </div>
+                    <div>Lighter #${i}</div>
+                    <button class="transfer-btn">Transfer</button>
+                `;
+                lighterGrid.appendChild(lighterItem);
+
+                // Add transfer button functionality
+                const transferBtn = lighterItem.querySelector('.transfer-btn');
+                transferBtn.addEventListener('click', function() {
+                    currentLighterNumber = i;
+                    playerNameSpan.textContent = ''; // Reset the player name
+                    transferModal.style.display = "block"; // Show the transfer modal
+                });
+            }
+        }
+
+        function updateCollectedCount() {
+            collectedCountSpan.textContent = collectedLighters;
+            claimPrizeBtn.disabled = collectedLighters < 75; // Enable or disable the claim prize button
+        }
+
+        closeModalBtn.onclick = function() {
+            transferModal.style.display = "none"; // Hide modal on close
+        };
+
+        cancelTransferBtn.onclick = function() {
+            transferModal.style.display = "none"; // Hide modal on cancel
+        };
+
+        confirmTransferBtn.onclick = function() {
+            const playerId = playerIdInput.value.trim();
+            if (playerId) {
+                // Emit event to transfer lighter
+                fetch(`https://jd-lighters/transferLighter`, {
+                    method: 'POST',
+                    body: JSON.stringify({ lighterNumber: currentLighterNumber, playerId: playerId }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        alert("Lighter transferred successfully!");
+                        transferModal.style.display = "none"; // Hide modal after successful transfer
+                    } else {
+                        alert("Failed to transfer lighter.");
+                    }
+                });
+            } else {
+                alert("Please enter a player ID.");
+            }
+        };
+
+        function updateCollectedCount() {
+    collectedCountSpan.textContent = collectedLighters.length; // Update with the count of collected lighters
+    if (collectedLighters.length >= 75) {
+        claimPrizeBtn.textContent = `Collect all 75 lighters to claim a prize`;
+        claimPrizeBtn.disabled = true;
+    } else {
+        claimPrizeBtn.textContent = 'Claim Prize';
+        claimPrizeBtn.disabled = false;
+    }
+}
+    </script>
+</body>
+</html>
